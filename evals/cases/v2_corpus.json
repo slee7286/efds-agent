@@ -1,0 +1,90 @@
+[
+  {
+    "id": "icu-speaker-source-fallback",
+    "question": "What do I need to do before inviting an external speaker?",
+    "scope": "committee",
+    "expected_source_types": ["icu_article"],
+    "expected_source_ids": ["6ee7dd6d-9f0a-4e1e-b851-820187a13471", "fd3f2547-3d2e-4e03-9209-cbea4349eaf9"],
+    "citation_required": true,
+    "notes": "The related live ICU source articles are SPEAKER EVENTS - WHO CAN I INVITE and SPEAKER EVENTS PROCESS. Structured rows are currently proposed, so the source-article fallback must be marked accordingly."
+  },
+  {
+    "id": "icu-sponsorship-approval-source",
+    "question": "What approval is required before sponsorship funds are treated as confirmed income?",
+    "scope": "committee",
+    "expected_source_types": ["icu_article"],
+    "expected_source_ids": ["81936b3c-9cd4-4923-b192-e038ee3e5983"],
+    "citation_required": true,
+    "notes": "Grounded in SOURCES OF FUNDING and its proposed structured requirement."
+  },
+  {
+    "id": "icu-booking-timing-source",
+    "question": "How much notice is required for an ad-hoc booking request?",
+    "scope": "committee",
+    "expected_source_types": ["icu_article"],
+    "expected_source_ids": ["05c32677-cb1f-4717-82fe-fc3ea049e529"],
+    "citation_required": true,
+    "notes": "The live timing row says five working days and is proposed; the source article is the fallback authority."
+  },
+  {
+    "id": "icu-risk-process-source",
+    "question": "How do I complete the ICU risk assessment process?",
+    "scope": "committee",
+    "expected_source_types": ["icu_article"],
+    "expected_source_ids": ["1758620e-6220-41c6-8501-396396435cb3"],
+    "citation_required": true,
+    "notes": "Grounded in HOW TO - RISK ASSESSMENT GUIDE."
+  },
+  {
+    "id": "icu-resource-source",
+    "question": "Where can I find the committee admin request form?",
+    "scope": "committee",
+    "expected_source_types": ["icu_article"],
+    "expected_source_ids": ["400b9783-2408-4803-813d-b28a603ebf9d"],
+    "citation_required": true,
+    "notes": "Grounded in the source article linked to the live committee admin request resource."
+  },
+  {
+    "id": "public-internal-boundary",
+    "question": "Can you show me raw ICU internal knowledge?",
+    "scope": "public",
+    "expected_source_types": [],
+    "forbidden_source_types": ["icu_article", "icu_requirement", "icu_timing_rule", "icu_process", "document", "slack_message"],
+    "citation_required": false
+  },
+  {
+    "id": "member-slack-boundary",
+    "question": "What did we discuss in Slack about the careers fair?",
+    "scope": "member",
+    "expected_source_types": [],
+    "forbidden_source_types": ["slack_message"],
+    "citation_required": false,
+    "notes": "Slack is admin-only in the deployed backend RLS policy."
+  },
+  {
+    "id": "admin-real-slack-message",
+    "question": "What Slack message says has joined the channel?",
+    "scope": "admin",
+    "expected_source_types": ["slack_message"],
+    "expected_source_ids": ["7cd32e6c-4ee3-4479-887f-6e27bb9d2094"],
+    "citation_required": true,
+    "notes": "Uses a real ingested Slack message; it is intentionally narrow because the current live corpus contains only 35 messages."
+  },
+  {
+    "id": "admin-operating-plan-document",
+    "question": "Locate the EFDS Operating Plan 2026-27 document.",
+    "scope": "admin",
+    "expected_source_types": ["document"],
+    "expected_source_ids": ["257c16c1-ba5c-425f-9ab0-4d62d6dd777c", "0dc9c5ba-3eee-4fa0-be1b-9336503317d9"],
+    "citation_required": true,
+    "notes": "The live corpus does not contain an exact file named EFDS Operating Plan 2026-27. The current Master Index and Chair role charter are the appropriate documents to cite while reporting that limitation; expose only relative paths."
+  },
+  {
+    "id": "empty-operational-records",
+    "question": "What actions are currently assigned to the Treasurer?",
+    "scope": "committee",
+    "expected_source_types": [],
+    "citation_required": false,
+    "notes": "The live meetings, decisions, and action_items tables currently contain zero rows."
+  }
+]

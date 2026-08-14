@@ -1,0 +1,10 @@
+{
+  "status": "blocked",
+  "reason": "search_retrieval_units_v1 returned HTTP 404/PGRST202 before any parity query could execute",
+  "canonical_strategy": "semantic_primary_exact",
+  "agent_rpc": "search_retrieval_units_v1",
+  "exact_order_match_rate": null,
+  "top10_set_match_rate": null,
+  "cases_compared": 0,
+  "order_discrepancies": []
+}

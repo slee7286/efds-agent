@@ -1,0 +1,9 @@
+[
+  {"id": "external-speaker", "query": "What is the process for hosting an external speaker?"},
+  {"id": "event-risk", "query": "What does EFDS need to do for event risk assessment?"},
+  {"id": "governance-documents", "query": "What governance documents do we have?"},
+  {"id": "finance", "query": "What are the responsibilities around society finances?"},
+  {"id": "room-booking", "query": "What do we need to do before booking a room?"},
+  {"id": "committee-responsibilities", "query": "What does our governance material say about committee responsibilities?"},
+  {"id": "no-answer", "query": "What is the EFDS procedure for operating a submarine?"}
+]

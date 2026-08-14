@@ -1,0 +1,16 @@
+{
+  "status": "blocked",
+  "reason": "search_retrieval_units_v1 returned HTTP 404/PGRST202 in the configured staged Supabase project",
+  "rpc": "search_retrieval_units_v1",
+  "contract_version": "1",
+  "migration_required": "0014_agent_retrieval_contract",
+  "cases_run": 0,
+  "classification_counts": {
+    "INTEGRATION_FAILURE": 0,
+    "RETRIEVAL_MISS": 0,
+    "GENERATION_MISS": 0,
+    "CITATION_MISS": 0,
+    "ABSTENTION_FAILURE": 0,
+    "AUTHORIZATION_FAILURE": 0
+  }
+}
