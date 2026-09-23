@@ -2,7 +2,7 @@ import httpx
 import pytest
 
 from efds_agent.config import Settings
-from efds_agent.retrieval.gateway import KnowledgeRetrievalGateway, RetrievalRequest
+from efds_agent.retrieval.gateway import KnowledgeRetrievalGateway, RetrievalDependencyError, RetrievalRequest
 from efds_agent.retrieval.modes import SourceMode
 from efds_agent.retrieval.supabase import SupabaseRestClient
 from efds_agent.security.authorization import AuthContext, development_context
@@ -96,3 +96,40 @@ async def test_supabase_rpc_propagates_user_jwt_and_never_service_role():
     assert captured["headers"]["authorization"] == "Bearer user-jwt"
     assert "service_role" not in str(captured).lower()
     await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_committee_ticket_mode_uses_bounded_public_channel_rpc_and_rejects_untrusted_rows():
+    message_id = "22222222-2222-4222-8222-222222222222"
+    client = FakeRpc([
+        row(retrieval_unit_id="safe", source_type="slack_message", source_record_id=message_id,
+            title="#events", snippet="Confirm the venue", score=0.8, visibility="committee",
+            review_status="source_generated", authority="committee_slack"),
+        row(retrieval_unit_id="private", source_type="slack_message", source_record_id="private",
+            title="#private", snippet="Private detail", score=0.9, visibility="internal",
+            review_status="source_generated", authority="committee_slack"),
+        row(retrieval_unit_id="wrong", source_type="meeting_notes", source_record_id="meeting",
+            title="Meeting", snippet="Private notes", score=1, visibility="committee",
+            review_status="source_generated", authority="committee_slack"),
+    ])
+    gateway = KnowledgeRetrievalGateway(Settings(_env_file=None), client)
+    package = await gateway.retrieve(
+        RetrievalRequest(query="suggest action", scope="committee", source_mode=SourceMode.COMMITTEE_TICKETS),
+        development_context(AgentScope.COMMITTEE),
+    )
+    assert client.calls == [("committee_ticket_slack_evidence_v1", {"result_limit": 12})]
+    assert [item.citation.retrieval_unit_id for item in package.items] == ["safe"]
+    assert package.citations[0].route == f"/dashboard/slack/messages/{message_id}"
+    assert package.citations[0].metadata["visibility"] == "committee"
+
+
+@pytest.mark.asyncio
+async def test_committee_ticket_mode_denies_member_before_rpc_call():
+    client = FakeRpc([])
+    gateway = KnowledgeRetrievalGateway(Settings(_env_file=None), client)
+    with pytest.raises(RetrievalDependencyError, match="committee scope"):
+        await gateway.retrieve(
+            RetrievalRequest(query="suggest action", scope="member", source_mode=SourceMode.COMMITTEE_TICKETS),
+            development_context(AgentScope.MEMBER),
+        )
+    assert client.calls == []

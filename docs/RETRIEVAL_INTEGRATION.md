@@ -5,8 +5,8 @@
 ```text
 authenticated efds-site request
     -> efds-agent auth and requested-scope narrowing
-    -> one fixed Supabase PostgREST RPC (contract v1)
-    -> RLS-scoped canonical retrieval rows
+    -> one allowlisted Supabase PostgREST RPC
+    -> permission-scoped canonical retrieval rows
     -> bounded ContextPackage
     -> one OpenAI Responses API synthesis call
     -> validated S1/S2 citations
@@ -15,8 +15,11 @@ authenticated efds-site request
 
 `efds-knowledge-base` owns `retrieval_units`, ingestion, embeddings, semantic
 retrieval, lexical rescue/fallback, authority/current-state ranking, RLS,
-provenance, and the `ContextPackage` retrieval semantics. The agent calls only
-the fixed `search_retrieval_units_v1` SECURITY INVOKER RPC. It does not import the
+provenance, and the `ContextPackage` retrieval semantics. The agent calls the
+fixed `search_retrieval_units_v1` SECURITY INVOKER RPC for ordinary QA and
+`committee_ticket_slack_evidence_v1` for committee ticket drafts. The latter is
+a backend-owned SECURITY DEFINER function with explicit actor, public-channel
+and current-message checks. The agent does not import the
 knowledge-base package, copy its SQL, search source tables, compute ranking, or
 use a service-role/database connection.
 
@@ -31,7 +34,7 @@ parity until the KB owner exposes a canonical RPC/service path that performs
 the same semantic-primary behavior. The agent fails closed on this mismatch;
 it does not compute embeddings, rank rows, or fall back to legacy adapters.
 
-The PostgREST contract is versioned in the agent as contract `1` and uses
+The ordinary QA PostgREST contract is versioned in the agent as contract `1` and uses
 fixed arguments: `search_query`, `requested_source_types`, the allowlisted
 optional filters (currently null), `include_history=false`, and bounded
 `result_limit`/`result_offset`. The caller's `Authorization: Bearer
@@ -46,8 +49,10 @@ without applying migrations.
 knowledge, approved `01_governance` documents, and operational source types if
 they become populated. The mode narrows access after the RLS-scoped RPC and
 never expands it. `full_institutional` is structurally defined for ICU,
-structured knowledge, documents, Slack, Meetily, and operational sources, but
-is not certified. `public` is a lower policy mode and remains subject to
+structured knowledge, documents, Slack, meeting notes, and operational sources,
+but is not certified. `committee_tickets` requires committee or admin scope and
+accepts only committee-visible current Slack rows from the dedicated RPC;
+it does not expose private channels or meeting notes. `public` is a lower policy mode and remains subject to
 anonymous RLS/public visibility.
 
 The server default is `AGENT_RETRIEVAL_K=10`, with a hard cap of

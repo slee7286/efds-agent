@@ -102,7 +102,7 @@ def _row_to_evidence(row: dict[str, Any], index: int) -> Evidence | None:
         channel=row.get("channel"), timestamp=row.get("occurred_at"),
         source_updated_at=row.get("source_updated_at"), content_hash=row.get("content_hash"),
         review_status=row.get("review_status"), authority=authority,
-        route=_safe_route(row), metadata=metadata,
+        route=_safe_route(row), metadata={**metadata, "visibility": row.get("visibility")},
     )
     return Evidence(citation=citation, text=text, relevance=float(row.get("score") or 0),
                     freshness=1.0 if row.get("is_current", True) else 0.0,
@@ -117,6 +117,10 @@ def _safe_route(row: dict[str, Any]) -> str | None:
     if source_type == "document":
         return "/admin/documents"
     if source_type == "slack_message":
+        if row.get("visibility") == "committee" and row.get("authority") == "committee_slack":
+            source_id = str(row.get("source_record_id") or "")
+            if re.fullmatch(r"[0-9a-fA-F-]{36}", source_id):
+                return f"/dashboard/slack/messages/{source_id}"
         return "/admin/slack"
     if source_type.startswith("meeting_"):
         return "/admin/meetings"
@@ -154,10 +158,16 @@ class KnowledgeRetrievalGateway:
             "result_limit": rpc_limit,
             "result_offset": 0,
         }
+        rpc_name = self.RPC_NAME
+        if mode is SourceMode.COMMITTEE_TICKETS:
+            if auth.scope.effective_scope not in {AgentScope.COMMITTEE, AgentScope.ADMIN}:
+                raise RetrievalDependencyError("committee ticket evidence requires committee scope")
+            rpc_name = "committee_ticket_slack_evidence_v1"
+            payload = {"result_limit": min(rpc_limit, 12)}
         client = self.client or SupabaseRestClient(self.settings, auth.bearer_token)
         try:
             rpc = client.rpc
-            rows = await rpc(self.RPC_NAME, payload)
+            rows = await rpc(rpc_name, payload)
             validate_result_rows(rows)
         except (AttributeError, DataAccessError) as exc:
             raise RetrievalDependencyError("canonical retrieval is unavailable") from exc
@@ -175,7 +185,11 @@ class KnowledgeRetrievalGateway:
             source_type = str(row.get("source_type") or "")
             if source_type not in SOURCE_MODE_TYPES[mode]:
                 continue
-            if source_type in admin_only_types and effective_scope is not AgentScope.ADMIN:
+            if mode is SourceMode.COMMITTEE_TICKETS:
+                if (source_type != "slack_message" or row.get("authority") != "committee_slack"
+                    or row.get("visibility") != "committee" or row.get("review_status") != "source_generated"):
+                    continue
+            elif source_type in admin_only_types and effective_scope is not AgentScope.ADMIN:
                 continue
             if visibility_rank.get(str(row.get("visibility") or "internal"), 3) > visibility_ceiling:
                 continue
@@ -192,7 +206,7 @@ class KnowledgeRetrievalGateway:
         scores = [float(row.get("score") or 0) for row in narrowed]
         metadata = {
             "retrieval_contract_version": self.CONTRACT_VERSION,
-            "retrieval_rpc": self.RPC_NAME,
+            "retrieval_rpc": rpc_name,
             "retrieval_strategy": "canonical_backend_order",
             "retrieval_quality": "low" if not evidence else ("limited" if len(evidence) == 1 else "normal"),
             "result_count": len(evidence),

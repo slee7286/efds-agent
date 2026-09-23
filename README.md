@@ -98,7 +98,10 @@ the website.
 - `preterm_knowledge`: ICU/structured knowledge, approved `01_governance`
   documents, and populated approved operational records; internal beta only.
 - `full_institutional`: structural future mode for authorized documents, Slack,
-  Meetily, and operational truth; not certified.
+  meeting notes, and operational truth; admin-only and not certified.
+- `committee_tickets`: recent messages from enabled public Slack channels,
+  returned by the backend's committee-only RPC for source-backed ticket drafts.
+  No private channels, meeting notes, or documents are available in this mode.
 - `public`: lower policy mode subject to public RLS/publication.
 
 The latest approved retrieval benchmark is Hit@1 0.4118, Hit@10/Recall@10

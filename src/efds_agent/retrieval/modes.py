@@ -4,6 +4,7 @@ from enum import StrEnum
 class SourceMode(StrEnum):
     PRETERM_KNOWLEDGE = "preterm_knowledge"
     FULL_INSTITUTIONAL = "full_institutional"
+    COMMITTEE_TICKETS = "committee_tickets"
     PUBLIC = "public"
 
 
@@ -24,6 +25,7 @@ SOURCE_MODE_TYPES: dict[SourceMode, tuple[str, ...]] = {
         "meeting_summary", "meeting_notes", "operational_decision", "operational_action",
         "operational_commitment", "operational_question", "operational_status",
     ),
+    SourceMode.COMMITTEE_TICKETS: ("slack_message",),
     SourceMode.PUBLIC: (
         "knowledge_resource", "knowledge_requirement", "knowledge_process",
         "knowledge_process_step", "knowledge_timing_rule", "knowledge_contact",

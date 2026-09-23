@@ -62,6 +62,8 @@ async def _auth_or_http(request: Request, scope: AgentScope | None):
 def _check_mode_access(auth, source_mode: SourceMode) -> None:
     if source_mode is SourceMode.FULL_INSTITUTIONAL and auth.scope.effective_scope is not AgentScope.ADMIN:
         raise HTTPException(status_code=403, detail="full institutional mode requires admin scope")
+    if source_mode is SourceMode.COMMITTEE_TICKETS and auth.scope.effective_scope not in {AgentScope.COMMITTEE, AgentScope.ADMIN}:
+        raise HTTPException(status_code=403, detail="committee ticket mode requires committee scope")
 
 
 @router.post("/v1/query", response_model=QueryResponse)
