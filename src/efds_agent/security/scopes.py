@@ -13,6 +13,7 @@ class AgentScope(StrEnum):
 class AccessRole(StrEnum):
     VIEWER = "viewer"
     MEMBER = "member"
+    EFDS_MEMBER = "efds_member"
     COMMITTEE = "committee"
     ADMIN = "admin"
 
@@ -32,6 +33,10 @@ class ScopeDecision:
 
 
 def scope_for_role(role: AccessRole) -> AgentScope:
+    if role is AccessRole.MEMBER:
+        return AgentScope.PUBLIC
+    if role is AccessRole.EFDS_MEMBER:
+        return AgentScope.MEMBER
     return AgentScope(role.value)
 
 

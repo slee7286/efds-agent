@@ -86,6 +86,13 @@ Retrieval, authentication, authorization, provider, and invalid-request errors
 are kept distinct. Zero evidence emits a deterministic insufficient-evidence
 answer without calling OpenAI.
 
+EFDS account roles and retrieval scopes are distinct. A newly created `member`
+account is limited to `public` retrieval. A society-verified `efds_member`
+account may request `member` retrieval; committee and admin roles retain their
+respective higher scopes. The agent reads the stored profile role for every
+authenticated request and rejects a scope above it, even when a caller bypasses
+the website.
+
 ## Source modes
 
 - `preterm_knowledge`: ICU/structured knowledge, approved `01_governance`

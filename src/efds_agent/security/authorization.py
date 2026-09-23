@@ -88,5 +88,10 @@ class SupabaseAuthorization:
 
 def development_context(scope: AgentScope) -> AuthContext:
     """CLI/test-only scope simulation; never used by HTTP dependencies."""
-    role = None if scope is AgentScope.PUBLIC else AccessRole(scope.value)
+    if scope is AgentScope.PUBLIC:
+        role = None
+    elif scope is AgentScope.MEMBER:
+        role = AccessRole.EFDS_MEMBER
+    else:
+        role = AccessRole(scope.value)
     return AuthContext(None, role, resolve_scope(role, scope), development_simulation=True)
