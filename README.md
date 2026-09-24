@@ -44,8 +44,9 @@ Required for real private retrieval and synthesis:
 
 ```text
 SUPABASE_URL
-SUPABASE_ANON_KEY       # public/publishable key only
+SUPABASE_PUBLISHABLE_KEY  # preferred; legacy SUPABASE_ANON_KEY also works
 AI_API_KEY              # server-only OpenAI key
+AGENT_SHARED_SECRET     # required when APP_ENV=production
 ```
 
 Important optional settings:
@@ -60,12 +61,12 @@ MAX_CONTEXT_ITEMS=10
 MAX_CONVERSATION_TURNS=4
 MAX_CONVERSATION_CHARS=4000
 REQUEST_TIMEOUT_SECONDS=15
-AGENT_SHARED_SECRET=       # caller authenticity only; never grants data access
 ```
 
 The website needs `NEXT_PUBLIC_SUPABASE_URL`, a publishable/anon browser key,
-`EFDS_AGENT_URL=http://localhost:8000`, and optionally the matching
-`EFDS_AGENT_SHARED_SECRET`. `OPENAI_API_KEY` is never sent to the browser.
+`EFDS_AGENT_URL=http://localhost:8000`, and the matching
+`EFDS_AGENT_SHARED_SECRET` in production. `OPENAI_API_KEY` is never sent to the browser.
+The production Vercel handoff is in [docs/VERCEL_DEPLOYMENT.md](docs/VERCEL_DEPLOYMENT.md).
 
 ## API
 

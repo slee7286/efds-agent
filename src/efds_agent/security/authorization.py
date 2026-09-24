@@ -35,13 +35,13 @@ class SupabaseAuthorization:
         self.client = client
 
     @property
-    def _anon_key(self) -> str:
-        key = self.settings.supabase_anon_key
+    def _api_key(self) -> str:
+        key = self.settings.supabase_api_key
         if not key: raise AuthError("Supabase is not configured")
-        return key.get_secret_value()
+        return key
 
     async def _request(self, method: str, url: str, token: str, **kwargs: Any) -> httpx.Response:
-        headers = {"apikey": self._anon_key, "Authorization": f"Bearer {token}"}
+        headers = {"apikey": self._api_key, "Authorization": f"Bearer {token}"}
         if self.client is not None: return await self.client.request(method, url, headers=headers, **kwargs)
         async with httpx.AsyncClient(timeout=self.settings.request_timeout_seconds) as client:
             return await client.request(method, url, headers=headers, **kwargs)

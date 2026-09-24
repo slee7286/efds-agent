@@ -25,11 +25,15 @@ class SupabaseRestClient:
         self.settings, self.bearer_token, self.client = settings, bearer_token, client
 
     def _headers(self, *, content_type: bool = False) -> dict[str, str]:
-        key = self.settings.supabase_anon_key
+        key = self.settings.supabase_api_key
         if not key:
             return {}
-        key_value = key.get_secret_value()
-        headers = {"apikey": key_value, "Authorization": f"Bearer {self.bearer_token or key_value}"}
+        headers = {"apikey": key}
+        if self.bearer_token:
+            headers["Authorization"] = f"Bearer {self.bearer_token}"
+        elif not key.startswith("sb_publishable_"):
+            # Legacy anon keys are JWTs; publishable keys are opaque API keys.
+            headers["Authorization"] = f"Bearer {key}"
         if content_type:
             headers["Content-Type"] = "application/json"
         return headers
@@ -54,7 +58,7 @@ class SupabaseRestClient:
 
     async def select(self, table: str, fields: str, params: Sequence[tuple[str, str]] = ()) -> list[dict[str, Any]]:
         if table not in ALLOWED_TABLES: raise DataAccessError("table is not an allowlisted retrieval source")
-        key = self.settings.supabase_anon_key
+        key = self.settings.supabase_api_key
         if not self.settings.is_supabase_configured or not key: return []
         headers = self._headers()
         query = [("select", fields), *params]
@@ -74,7 +78,7 @@ class SupabaseRestClient:
         """Call one fixed, RLS-aware retrieval RPC; arbitrary RPC/SQL is rejected."""
         if function not in ALLOWED_RPCS:
             raise DataAccessError("function is not an allowlisted retrieval RPC")
-        key = self.settings.supabase_anon_key
+        key = self.settings.supabase_api_key
         if not self.settings.is_supabase_configured or not key:
             return []
         headers = self._headers(content_type=True)

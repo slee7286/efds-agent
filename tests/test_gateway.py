@@ -99,6 +99,25 @@ async def test_supabase_rpc_propagates_user_jwt_and_never_service_role():
 
 
 @pytest.mark.asyncio
+async def test_publishable_key_uses_apikey_only_until_a_user_jwt_is_available():
+    requests = []
+
+    def handler(request: httpx.Request):
+        requests.append(request)
+        return httpx.Response(200, json=[])
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        settings = Settings(_env_file=None, supabase_url="https://example.supabase.co",
+                            supabase_publishable_key="sb_publishable_test")
+        await SupabaseRestClient(settings, client=client).rpc("search_retrieval_units_v1", {"search_query": "public"})
+        await SupabaseRestClient(settings, "user-jwt", client).rpc("search_retrieval_units_v1", {"search_query": "member"})
+
+    assert requests[0].headers["apikey"] == "sb_publishable_test"
+    assert "authorization" not in requests[0].headers
+    assert requests[1].headers["authorization"] == "Bearer user-jwt"
+
+
+@pytest.mark.asyncio
 async def test_committee_ticket_mode_uses_bounded_public_channel_rpc_and_rejects_untrusted_rows():
     message_id = "22222222-2222-4222-8222-222222222222"
     client = FakeRpc([

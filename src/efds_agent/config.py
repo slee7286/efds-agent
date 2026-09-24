@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     allowed_origins: str = "http://localhost:3000"
     supabase_url: str = ""
+    supabase_publishable_key: SecretStr | None = None
     supabase_anon_key: SecretStr | None = None
     supabase_auth_timeout_seconds: float = 8.0
     ai_provider: Literal["openai"] = "openai"
@@ -38,10 +39,12 @@ class Settings(BaseSettings):
             missing: list[str] = []
             if not self.supabase_url:
                 missing.append("SUPABASE_URL")
-            if not self.supabase_anon_key or not self.supabase_anon_key.get_secret_value():
-                missing.append("SUPABASE_ANON_KEY")
+            if not self.supabase_api_key:
+                missing.append("SUPABASE_PUBLISHABLE_KEY or SUPABASE_ANON_KEY")
             if not self.ai_api_key or not self.ai_api_key.get_secret_value():
                 missing.append("AI_API_KEY")
+            if not self.agent_shared_secret or len(self.agent_shared_secret.get_secret_value()) < 32:
+                missing.append("AGENT_SHARED_SECRET (at least 32 characters)")
             if missing:
                 raise ValueError("Missing required production configuration: " + ", ".join(missing))
         return self
@@ -56,7 +59,14 @@ class Settings(BaseSettings):
 
     @property
     def is_supabase_configured(self) -> bool:
-        return bool(self.supabase_url and self.supabase_anon_key and self.supabase_anon_key.get_secret_value())
+        return bool(self.supabase_url and self.supabase_api_key)
+
+    @property
+    def supabase_api_key(self) -> str | None:
+        for key in (self.supabase_publishable_key, self.supabase_anon_key):
+            if key and key.get_secret_value():
+                return key.get_secret_value()
+        return None
 
     @property
     def retrieval_k(self) -> int:
