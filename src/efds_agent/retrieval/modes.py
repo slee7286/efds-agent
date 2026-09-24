@@ -5,6 +5,7 @@ class SourceMode(StrEnum):
     PRETERM_KNOWLEDGE = "preterm_knowledge"
     FULL_INSTITUTIONAL = "full_institutional"
     COMMITTEE_TICKETS = "committee_tickets"
+    ADMIN_OUTLOOK_TICKETS = "admin_outlook_tickets"
     PUBLIC = "public"
 
 
@@ -21,11 +22,12 @@ SOURCE_MODE_TYPES: dict[SourceMode, tuple[str, ...]] = {
     SourceMode.FULL_INSTITUTIONAL: (
         "icu_article", "knowledge_requirement", "knowledge_timing_rule",
         "knowledge_process", "knowledge_process_step", "knowledge_resource",
-        "knowledge_contact", "document", "slack_message", "meeting_transcript",
+        "knowledge_contact", "document", "slack_message", "outlook_message", "meeting_transcript",
         "meeting_summary", "meeting_notes", "operational_decision", "operational_action",
         "operational_commitment", "operational_question", "operational_status",
     ),
     SourceMode.COMMITTEE_TICKETS: ("slack_message",),
+    SourceMode.ADMIN_OUTLOOK_TICKETS: ("outlook_message",),
     SourceMode.PUBLIC: (
         "knowledge_resource", "knowledge_requirement", "knowledge_process",
         "knowledge_process_step", "knowledge_timing_rule", "knowledge_contact",

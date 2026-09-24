@@ -11,7 +11,7 @@ ALLOWED_TABLES = {
     "document_versions", "meetings", "decisions", "action_items", "slack_channels", "slack_messages",
     "slack_users", "public_knowledge_resources",
 }
-ALLOWED_RPCS = {"search_retrieval_units_v1", "committee_ticket_slack_evidence_v1"}
+ALLOWED_RPCS = {"search_retrieval_units_v1", "committee_ticket_slack_evidence_v1", "admin_outlook_ticket_evidence_v1"}
 
 
 class DataAccessError(Exception):

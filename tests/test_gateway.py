@@ -133,3 +133,28 @@ async def test_committee_ticket_mode_denies_member_before_rpc_call():
             development_context(AgentScope.MEMBER),
         )
     assert client.calls == []
+
+
+@pytest.mark.asyncio
+async def test_outlook_ticket_mode_is_admin_only_and_uses_the_private_rpc():
+    client = FakeRpc([
+        row(retrieval_unit_id="mail", source_type="outlook_message", source_record_id="mail-id",
+            title="Event update", snippet="Confirm the date", score=0.7, visibility="internal",
+            review_status="source_generated", authority="outlook_mail"),
+        row(retrieval_unit_id="wrong", source_type="outlook_message", source_record_id="wrong-id",
+            title="Wrong", snippet="Do not show", score=0.9, visibility="internal",
+            review_status="source_generated", authority="other"),
+    ])
+    gateway = KnowledgeRetrievalGateway(Settings(_env_file=None), client)
+    package = await gateway.retrieve(
+        RetrievalRequest(query="suggest action", scope="admin", source_mode=SourceMode.ADMIN_OUTLOOK_TICKETS),
+        development_context(AgentScope.ADMIN),
+    )
+    assert client.calls == [("admin_outlook_ticket_evidence_v1", {"result_limit": 12})]
+    assert [item.citation.retrieval_unit_id for item in package.items] == ["mail"]
+    with pytest.raises(RetrievalDependencyError, match="admin scope"):
+        await gateway.retrieve(
+            RetrievalRequest(query="suggest action", scope="committee", source_mode=SourceMode.ADMIN_OUTLOOK_TICKETS),
+            development_context(AgentScope.COMMITTEE),
+        )
+    assert len(client.calls) == 1

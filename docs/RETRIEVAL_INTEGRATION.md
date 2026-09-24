@@ -17,9 +17,11 @@ authenticated efds-site request
 retrieval, lexical rescue/fallback, authority/current-state ranking, RLS,
 provenance, and the `ContextPackage` retrieval semantics. The agent calls the
 fixed `search_retrieval_units_v1` SECURITY INVOKER RPC for ordinary QA and
-`committee_ticket_slack_evidence_v1` for committee ticket drafts. The latter is
-a backend-owned SECURITY DEFINER function with explicit actor, public-channel
-and current-message checks. The agent does not import the
+`committee_ticket_slack_evidence_v1` for committee ticket drafts, and
+`admin_outlook_ticket_evidence_v1` for private admin Outlook proposals. Both
+specialized functions are backend-owned SECURITY DEFINER RPCs with explicit
+actor and current-source checks. The committee function also checks public
+channel visibility. The agent does not import the
 knowledge-base package, copy its SQL, search source tables, compute ranking, or
 use a service-role/database connection.
 
@@ -49,10 +51,14 @@ without applying migrations.
 knowledge, approved `01_governance` documents, and operational source types if
 they become populated. The mode narrows access after the RLS-scoped RPC and
 never expands it. `full_institutional` is structurally defined for ICU,
-structured knowledge, documents, Slack, meeting notes, and operational sources,
+structured knowledge, documents, Slack, sender-limited Outlook mail, meeting
+notes, and operational sources,
 but is not certified. `committee_tickets` requires committee or admin scope and
 accepts only committee-visible current Slack rows from the dedicated RPC;
-it does not expose private channels or meeting notes. `public` is a lower policy mode and remains subject to
+it does not expose private channels or meeting notes. `admin_outlook_tickets`
+accepts only current internal Outlook rows from its admin-only RPC; it has no
+evidence until the optional collector has synced the sender-limited mailbox.
+`public` is a lower policy mode and remains subject to
 anonymous RLS/public visibility.
 
 The server default is `AGENT_RETRIEVAL_K=10`, with a hard cap of

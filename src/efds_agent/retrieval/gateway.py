@@ -164,6 +164,11 @@ class KnowledgeRetrievalGateway:
                 raise RetrievalDependencyError("committee ticket evidence requires committee scope")
             rpc_name = "committee_ticket_slack_evidence_v1"
             payload = {"result_limit": min(rpc_limit, 12)}
+        elif mode is SourceMode.ADMIN_OUTLOOK_TICKETS:
+            if auth.scope.effective_scope is not AgentScope.ADMIN:
+                raise RetrievalDependencyError("Outlook ticket evidence requires admin scope")
+            rpc_name = "admin_outlook_ticket_evidence_v1"
+            payload = {"result_limit": min(rpc_limit, 12)}
         client = self.client or SupabaseRestClient(self.settings, auth.bearer_token)
         try:
             rpc = client.rpc
@@ -180,7 +185,7 @@ class KnowledgeRetrievalGateway:
             AgentScope.COMMITTEE: 2, AgentScope.ADMIN: 3,
         }[effective_scope]
         visibility_rank = {"public": 0, "member": 1, "committee": 2, "internal": 3}
-        admin_only_types = {"document", "slack_message", "meeting_transcript", "meeting_summary", "meeting_notes"}
+        admin_only_types = {"document", "slack_message", "outlook_message", "meeting_transcript", "meeting_summary", "meeting_notes"}
         for row in rows:
             source_type = str(row.get("source_type") or "")
             if source_type not in SOURCE_MODE_TYPES[mode]:
@@ -188,6 +193,10 @@ class KnowledgeRetrievalGateway:
             if mode is SourceMode.COMMITTEE_TICKETS:
                 if (source_type != "slack_message" or row.get("authority") != "committee_slack"
                     or row.get("visibility") != "committee" or row.get("review_status") != "source_generated"):
+                    continue
+            elif mode is SourceMode.ADMIN_OUTLOOK_TICKETS:
+                if (source_type != "outlook_message" or row.get("authority") != "outlook_mail"
+                    or row.get("visibility") != "internal" or row.get("review_status") != "source_generated"):
                     continue
             elif source_type in admin_only_types and effective_scope is not AgentScope.ADMIN:
                 continue
