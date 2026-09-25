@@ -1,4 +1,46 @@
-# EFDS Agent V1 evaluation
+# EFDS Agent evaluation
+
+The agent suite has two halves, matching the two architectures. V2 adds
+planning, hybrid retrieval, and post-generation citation verification, so its
+outcomes are evaluated separately from V1's.
+
+## V2 agent suite
+
+```powershell
+.\.venv\Scripts\python.exe scripts/run_agent_eval.py
+```
+
+This is deterministic and credential-free: fixture retrieval, no paid model
+calls. It exits **non-zero when any case fails**, so it can gate a build.
+
+Cases cover retrieval miss, generation miss, invalid citation, insufficient
+evidence, prompt-injection evidence, and member/admin isolation. Expected
+negative cases are labelled in the fixture (`expected_retrieval_miss`,
+`expected_generation_miss`, `expected_invalid_citation`) rather than counted as
+product regressions.
+
+## Unit tests
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+These cover the V2 behaviour that the fixture suite cannot reach without a live
+model: the planner's gate and fallbacks, the evidence envelope's anti-forgery
+behaviour, citation-verification outcomes including refusal and verifier outage,
+and model-tier selection including escalation bounds.
+
+## Continuous integration
+
+`.github/workflows/agent-checks.yml` runs, on every push to `main` and every pull
+request: `ruff check`, `ruff format --check`, `pytest`, the V2 agent suite, and an
+offline smoke of the retrieval harness. No step requires a credential or makes a
+paid call.
+
+Live hit-rate evaluation is deliberately not in CI: it needs a real bearer token
+and the production backend, so it stays manually triggered.
+
+## Retrieval corpus harness
 
 Run the deterministic agent evaluation without paid model calls:
 
@@ -18,6 +60,16 @@ The existing retrieval-only corpus harness remains available:
 ```powershell
 .\.venv\Scripts\python.exe scripts/run_eval.py --retrieval-only
 ```
+
+Its default `--cases` is the `evals/cases` directory. `agent_preterm_live.json`
+uses the separate HTTP-endpoint schema that `run_live_agent_eval.py` consumes, so
+the loader skips schema-incompatible files and reports them under
+`skipped_case_files` instead of failing on the first case it cannot run.
+
+Offline, private-scope cases report `private_scope_simulation_without_bearer`:
+without a bearer token there is no RLS-backed evidence to retrieve, so a low
+offline hit rate is expected and is not a regression. Hit rates are only
+meaningful with `--live`.
 
 For a live RLS retrieval evaluation, use a short-lived token in the current
 PowerShell process only:
@@ -43,9 +95,25 @@ Evaluation categories:
 - insufficient evidence: no authorized evidence must produce abstention;
 - authorization leakage: forbidden source types or admin-only evidence reach the answer.
 
+V2 adds these outcomes:
+
+- planner gate: a self-contained question is searched as asked and spends no
+  planning call; only a history-dependent or multi-part question is rewritten;
+- planner degradation: a planner error or unparsable plan falls back to the raw
+  question rather than failing the request;
+- envelope integrity: retrieved content cannot forge or close the evidence
+  boundary, and the per-request marker is stripped from source text;
+- citation verification: an unsupported claim loses its citation, and an answer
+  with no supported cited claim is withheld rather than asserted;
+- verification degradation: a verifier outage returns the answer unverified and
+  records `verifier_error` in the trace.
+
 Subjective correctness, unsupported-claim review, authority conflicts, and
 temporal correctness remain manual rubric checks until there is enough dogfood
-data to justify a separate judge system.
+data to justify a separate judge system. Note that the citation verifier is
+itself a model call, so its own false-negative rate bounds the guarantee: a
+withheld answer means the audit found nothing supported, not that the answer is
+false.
 
 ## Live contract and dogfood evaluation
 

@@ -39,7 +39,9 @@ def source_article_relevance(title: Any, body: Any, terms: Iterable[str], base: 
     score = base + (title_matches / len(clean_terms)) * 0.40 + (body_matches / len(clean_terms)) * 0.20
     if len(clean_terms) > 1:
         adjacent_pairs = pairwise(clean_terms)
-        if any(f"{first} {second}" in title_text or f"{first} {second}" in body_text for first, second in adjacent_pairs):
+        if any(
+            f"{first} {second}" in title_text or f"{first} {second}" in body_text for first, second in adjacent_pairs
+        ):
             score += 0.15
     return min(0.99, score)
 
@@ -64,8 +66,17 @@ def text(value: Any, fallback: str = "") -> str:
     return str(value).strip() if value not in (None, "") else fallback
 
 
-def evidence(citation: Citation, body: str, relevance: float = 0.6, metadata: dict[str, object] | None = None) -> Evidence | None:
+def evidence(
+    citation: Citation, body: str, relevance: float = 0.6, metadata: dict[str, object] | None = None
+) -> Evidence | None:
     body = body.strip()
-    if not body: return None
+    if not body:
+        return None
     citation.excerpt = body[:1200]
-    return Evidence(citation=citation, text=body[:2400], relevance=relevance, review_status=citation.review_status, metadata=metadata or {})
+    return Evidence(
+        citation=citation,
+        text=body[:2400],
+        relevance=relevance,
+        review_status=citation.review_status,
+        metadata=metadata or {},
+    )

@@ -20,11 +20,22 @@ class TraceMetadata(BaseModel):
     input_tokens: int = 0
     output_tokens: int = 0
     total_tokens: int = 0
+    # Tokens served from the provider's prompt cache. A working cache is
+    # otherwise indistinguishable from a broken one.
+    cached_tokens: int = 0
     source_mode: str = "preterm_knowledge"
     retrieval_quality: str = "low"
     evidence_chars: int = 0
     dropped_by_budget: int = 0
     failure_category: str | None = None
+    # Query planning and citation verification telemetry.
+    query_plan_reason: str = ""
+    query_rewritten: bool = False
+    search_query_count: int = 0
+    retrieval_strategy: str = ""
+    citations_removed_by_verification: list[str] = Field(default_factory=list)
+    verification_note: str | None = None
+    answer_withheld_by_verification: bool = False
 
 
 class AgentResponse(BaseModel):

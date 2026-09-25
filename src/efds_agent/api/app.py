@@ -13,7 +13,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(settings.log_level)
     app = FastAPI(title="EFDS Agent", version="0.1.0")
-    app.add_middleware(CORSMiddleware, allow_origins=[x.strip() for x in settings.allowed_origins.split(",") if x.strip()], allow_credentials=True, allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type"])
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[x.strip() for x in settings.allowed_origins.split(",") if x.strip()],
+        allow_credentials=True,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Authorization", "Content-Type"],
+    )
     app.state.settings = settings
     app.state.authorization = SupabaseAuthorization(settings)
     app.state.orchestrator = AgentOrchestrator(settings, build_provider(settings))

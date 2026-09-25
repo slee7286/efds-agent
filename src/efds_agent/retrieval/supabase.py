@@ -6,12 +6,31 @@ import httpx
 from efds_agent.config import Settings
 
 ALLOWED_TABLES = {
-    "knowledge_articles", "knowledge_requirements", "knowledge_timing_rules", "knowledge_processes",
-    "knowledge_process_steps", "knowledge_resources", "knowledge_contacts", "documents",
-    "document_versions", "meetings", "decisions", "action_items", "slack_channels", "slack_messages",
-    "slack_users", "public_knowledge_resources",
+    "knowledge_articles",
+    "knowledge_requirements",
+    "knowledge_timing_rules",
+    "knowledge_processes",
+    "knowledge_process_steps",
+    "knowledge_resources",
+    "knowledge_contacts",
+    "documents",
+    "document_versions",
+    "meetings",
+    "decisions",
+    "action_items",
+    "slack_channels",
+    "slack_messages",
+    "slack_users",
+    "public_knowledge_resources",
 }
-ALLOWED_RPCS = {"search_retrieval_units_v1", "committee_ticket_slack_evidence_v1", "admin_outlook_ticket_evidence_v1"}
+ALLOWED_RPCS = {
+    "search_retrieval_units_v1",
+    "search_retrieval_units_multi",
+    "search_retrieval_units_public",
+    "retrieval_embedding_profile",
+    "committee_ticket_slack_evidence_v1",
+    "admin_outlook_ticket_evidence_v1",
+}
 
 
 class DataAccessError(Exception):
@@ -21,7 +40,9 @@ class DataAccessError(Exception):
 class SupabaseRestClient:
     """Small allowlisted PostgREST client. There is deliberately no SQL endpoint."""
 
-    def __init__(self, settings: Settings, bearer_token: str | None = None, client: httpx.AsyncClient | None = None) -> None:
+    def __init__(
+        self, settings: Settings, bearer_token: str | None = None, client: httpx.AsyncClient | None = None
+    ) -> None:
         self.settings, self.bearer_token, self.client = settings, bearer_token, client
 
     def _headers(self, *, content_type: bool = False) -> dict[str, str]:
@@ -57,20 +78,24 @@ class SupabaseRestClient:
         return payload if isinstance(payload, dict) else {}
 
     async def select(self, table: str, fields: str, params: Sequence[tuple[str, str]] = ()) -> list[dict[str, Any]]:
-        if table not in ALLOWED_TABLES: raise DataAccessError("table is not an allowlisted retrieval source")
+        if table not in ALLOWED_TABLES:
+            raise DataAccessError("table is not an allowlisted retrieval source")
         key = self.settings.supabase_api_key
-        if not self.settings.is_supabase_configured or not key: return []
+        if not self.settings.is_supabase_configured or not key:
+            return []
         headers = self._headers()
         query = [("select", fields), *params]
         url = f"{self.settings.rest_url}/{table}"
         try:
-            if self.client is not None: response = await self.client.get(url, headers=headers, params=query)
+            if self.client is not None:
+                response = await self.client.get(url, headers=headers, params=query)
             else:
                 async with httpx.AsyncClient(timeout=self.settings.request_timeout_seconds) as client:
                     response = await client.get(url, headers=headers, params=query)
         except httpx.RequestError as exc:
             raise DataAccessError(f"PostgREST is unreachable for {table}") from exc
-        if response.status_code >= 400: raise DataAccessError(f"PostgREST retrieval failed for {table}: {response.status_code}")
+        if response.status_code >= 400:
+            raise DataAccessError(f"PostgREST retrieval failed for {table}: {response.status_code}")
         payload = response.json()
         return payload if isinstance(payload, list) else []
 

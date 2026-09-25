@@ -37,18 +37,22 @@ class SupabaseAuthorization:
     @property
     def _api_key(self) -> str:
         key = self.settings.supabase_api_key
-        if not key: raise AuthError("Supabase is not configured")
+        if not key:
+            raise AuthError("Supabase is not configured")
         return key
 
     async def _request(self, method: str, url: str, token: str, **kwargs: Any) -> httpx.Response:
         headers = {"apikey": self._api_key, "Authorization": f"Bearer {token}"}
-        if self.client is not None: return await self.client.request(method, url, headers=headers, **kwargs)
+        if self.client is not None:
+            return await self.client.request(method, url, headers=headers, **kwargs)
         async with httpx.AsyncClient(timeout=self.settings.request_timeout_seconds) as client:
             return await client.request(method, url, headers=headers, **kwargs)
 
     async def authenticate(self, token: str, requested_scope: AgentScope | None) -> AuthContext:
-        if not self.settings.is_supabase_configured: raise AuthError("Supabase is not configured")
-        if not token or len(token) > 10000: raise AuthError("invalid bearer token")
+        if not self.settings.is_supabase_configured:
+            raise AuthError("Supabase is not configured")
+        if not token or len(token) > 10000:
+            raise AuthError("invalid bearer token")
         try:
             response = await self._request("GET", self.settings.auth_url, token)
         except httpx.RequestError as exc:
@@ -67,22 +71,30 @@ class SupabaseAuthorization:
             raise AuthError("Supabase returned an invalid identity") from exc
         try:
             profile_response = await self._request(
-                "GET", self.settings.rest_url + "/profiles", token,
+                "GET",
+                self.settings.rest_url + "/profiles",
+                token,
                 params={"select": "access_role,active,auth_user_id", "auth_user_id": f"eq.{user.id}", "limit": "1"},
             )
         except httpx.RequestError as exc:
             raise AuthError("Supabase profile lookup is unreachable") from exc
-        if profile_response.status_code != 200: raise AuthError("profile authorization lookup failed")
+        if profile_response.status_code != 200:
+            raise AuthError("profile authorization lookup failed")
         rows = profile_response.json()
-        if not isinstance(rows, list) or not rows: raise AuthError("active EFDS profile required")
+        if not isinstance(rows, list) or not rows:
+            raise AuthError("active EFDS profile required")
         profile = rows[0]
-        if profile.get("active") is not True or profile.get("auth_user_id") != user.id: raise AuthError("active EFDS profile required")
-        try: role = AccessRole(str(profile["access_role"]))
-        except (KeyError, ValueError) as exc: raise AuthError("profile has an invalid access role") from exc
+        if profile.get("active") is not True or profile.get("auth_user_id") != user.id:
+            raise AuthError("active EFDS profile required")
+        try:
+            role = AccessRole(str(profile["access_role"]))
+        except (KeyError, ValueError) as exc:
+            raise AuthError("profile has an invalid access role") from exc
         return AuthContext(user, role, resolve_scope(role, requested_scope), token)
 
     def public(self, requested_scope: AgentScope | None) -> AuthContext:
-        if requested_scope not in (None, AgentScope.PUBLIC): raise AuthError("authentication is required for a private scope")
+        if requested_scope not in (None, AgentScope.PUBLIC):
+            raise AuthError("authentication is required for a private scope")
         return AuthContext(None, None, resolve_scope(None, AgentScope.PUBLIC))
 
 

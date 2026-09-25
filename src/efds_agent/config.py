@@ -17,9 +17,33 @@ class Settings(BaseSettings):
     supabase_anon_key: SecretStr | None = None
     supabase_auth_timeout_seconds: float = 8.0
     ai_provider: Literal["openai"] = "openai"
-    default_model: str = "gpt-5.4-mini"
-    reasoning_model: str = "gpt-5.4-mini"
+    # Model tiering. Synthesis uses a mid-tier model; the cheap tier handles
+    # query planning and citation verification, where the task is short,
+    # structured and latency-tolerant. Cheap-model tiering is the single
+    # biggest cost lever, so the expensive tier is opt-in rather than default.
+    default_model: str = "gpt-5.6-terra"
+    reasoning_model: str = "gpt-6-astra"
+    small_model: str = "gpt-5.6-luna"
+    # Escalation to the flagship tier is OFF by default: the cost cap matters
+    # more than the marginal quality on decomposed questions. Turn it on when a
+    # live eval shows the default tier is actually losing multi-hop answers.
+    escalate_decomposed_questions: bool = False
     ai_api_key: SecretStr | None = None
+    embedding_model: str = "text-embedding-3-small"
+    embedding_dimensions: int = 1536
+    # Prompt caching requires a stable prefix of at least 1024 tokens on
+    # GPT-5.6+; the policy block in agent.prompts is written to clear that
+    # threshold precisely so every request reuses the same cached prefix.
+    prompt_cache_key: str = "efds-agent-v2"
+    enable_query_planning: bool = True
+    enable_citation_verification: bool = True
+    sub_query_limit: int = 3
+    # Reciprocal rank fusion cannot separate a strong lexical hit from a weak
+    # semantic one, so the semantic branch needs an explicit floor. Calibrate
+    # this against the EFDS corpus with the eval harness before lowering it.
+    semantic_floor: float = 0.30
+    planner_timeout_seconds: float = 8.0
+    verification_timeout_seconds: float = 10.0
     agent_retrieval_k: int = Field(default=10, validation_alias="AGENT_RETRIEVAL_K")
     max_retrieval_k: int = Field(default=20, validation_alias="AGENT_MAX_RETRIEVAL_K")
     max_context_items: int = 10
@@ -72,6 +96,7 @@ class Settings(BaseSettings):
     def retrieval_k(self) -> int:
         """Return the bounded server-side K; browser input never controls it."""
         return min(max(self.agent_retrieval_k, 1), max(self.max_retrieval_k, 1))
+
 
 @lru_cache
 def get_settings() -> Settings:

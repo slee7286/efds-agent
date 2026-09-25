@@ -18,7 +18,13 @@ class AccessRole(StrEnum):
     ADMIN = "admin"
 
 
-SCOPE_RANK = {AgentScope.PUBLIC: 0, AgentScope.VIEWER: 1, AgentScope.MEMBER: 2, AgentScope.COMMITTEE: 3, AgentScope.ADMIN: 4}
+SCOPE_RANK = {
+    AgentScope.PUBLIC: 0,
+    AgentScope.VIEWER: 1,
+    AgentScope.MEMBER: 2,
+    AgentScope.COMMITTEE: 3,
+    AgentScope.ADMIN: 4,
+}
 
 
 class ScopeError(ValueError):
@@ -48,8 +54,12 @@ def resolve_scope(role: AccessRole | None, requested: AgentScope | None) -> Scop
 
 
 def can_read_source(scope: AgentScope, source: str) -> bool:
-    if source == "knowledge_public": return True
-    if source == "knowledge": return scope in {AgentScope.MEMBER, AgentScope.COMMITTEE, AgentScope.ADMIN}
-    if source in {"operational", "documents_legacy"}: return scope in {AgentScope.COMMITTEE, AgentScope.ADMIN}
-    if source in {"documents_onedrive", "slack"}: return scope is AgentScope.ADMIN
+    if source == "knowledge_public":
+        return True
+    if source == "knowledge":
+        return scope in {AgentScope.MEMBER, AgentScope.COMMITTEE, AgentScope.ADMIN}
+    if source in {"operational", "documents_legacy"}:
+        return scope in {AgentScope.COMMITTEE, AgentScope.ADMIN}
+    if source in {"documents_onedrive", "slack"}:
+        return scope is AgentScope.ADMIN
     return False

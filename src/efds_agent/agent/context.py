@@ -4,7 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from efds_agent.citations.formatter import context_block
+from efds_agent.agent.prompts import new_marker
+from efds_agent.citations.formatter import context_block, evidence_region
 from efds_agent.citations.models import Citation, Evidence
 from efds_agent.security.scopes import AgentScope
 
@@ -29,6 +30,7 @@ def build_context(
     max_chars: int = 12000,
     *,
     metadata: dict[str, Any] | None = None,
+    marker: str | None = None,
 ) -> ContextPackage:
     """Bound evidence without changing canonical retrieval order.
 
@@ -60,8 +62,12 @@ def build_context(
     blocks: list[str] = []
     total = 0
     dropped = 0
+    # One marker for the whole evidence region. It is unpredictable per request
+    # and stripped from source text by the formatter, so retrieved content
+    # cannot imitate the boundary of the region it sits inside.
+    evidence_marker = marker or new_marker()
     for item in unique[:max_items]:
-        block = context_block(item.citation, item.text)
+        block = context_block(item.citation, item.text, evidence_marker)
         if total + len(block) > max_chars:
             dropped += 1
             continue
@@ -70,12 +76,21 @@ def build_context(
         total += len(block)
     dropped += max(len(unique) - min(len(unique), max_items), 0)
     result_metadata = dict(metadata or {})
-    result_metadata.update({
-        "context_items_available": len(unique),
-        "context_items_included": len(selected),
-        "context_items_dropped_by_budget": dropped,
-        "evidence_chars": total,
-    })
+    result_metadata.update(
+        {
+            "context_items_available": len(unique),
+            "context_items_included": len(selected),
+            "context_items_dropped_by_budget": dropped,
+            "evidence_chars": total,
+            "evidence_marker": evidence_marker,
+        }
+    )
     citations = [item.citation for item in selected]
-    return ContextPackage(question=question, scope=effective_scope, items=selected, citations=citations,
-                          text="\n\n".join(blocks), retrieval_metadata=result_metadata)
+    return ContextPackage(
+        question=question,
+        scope=effective_scope,
+        items=selected,
+        citations=citations,
+        text=evidence_region(blocks, evidence_marker),
+        retrieval_metadata=result_metadata,
+    )

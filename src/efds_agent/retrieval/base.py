@@ -27,4 +27,5 @@ class RetrievalResult(BaseModel):
 
 class RetrievalAdapter(Protocol):
     source: str
+
     async def search(self, request: RetrievalRequest, auth: AuthContext) -> RetrievalResult: ...

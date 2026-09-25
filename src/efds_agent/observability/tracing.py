@@ -4,19 +4,24 @@ import time
 import uuid
 
 
-def request_id() -> str: return "req_" + uuid.uuid4().hex
+def request_id() -> str:
+    return "req_" + uuid.uuid4().hex
 
 
 class RequestTimer:
-    def __init__(self) -> None: self.started = time.perf_counter()
+    def __init__(self) -> None:
+        self.started = time.perf_counter()
+
     @property
-    def latency_ms(self) -> float: return round((time.perf_counter() - self.started) * 1000, 2)
+    def latency_ms(self) -> float:
+        return round((time.perf_counter() - self.started) * 1000, 2)
 
 
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         payload = {"level": record.levelname, "logger": record.name, "message": record.getMessage()}
-        if hasattr(record, "trace_data"): payload.update(record.trace_data)
+        if hasattr(record, "trace_data"):
+            payload.update(record.trace_data)
         return json.dumps(payload, default=str)
 
 

@@ -31,20 +31,71 @@ class KnowledgeAdapter:
         query = request.question.lower()
         tables: list[tuple[str, str, str, tuple[str, ...]]] = []
         if any(word in query for word in ("need", "required", "requirement", "must", "rule")):
-            tables.append(("knowledge_requirements", "requirement", "requirement_text,applies_to,mandatory", ("requirement_text", "evidence_text", "applies_to")))
+            tables.append(
+                (
+                    "knowledge_requirements",
+                    "requirement",
+                    "requirement_text,applies_to,mandatory",
+                    ("requirement_text", "evidence_text", "applies_to"),
+                )
+            )
         if any(word in query for word in ("when", "deadline", "timing", "notice", "days", "before")):
-            tables.append(("knowledge_timing_rules", "timing rule", "description,deadline_type,notice_period_value,notice_period_unit,working_days,absolute_date", ("description", "evidence_text", "relative_to_event_type")))
+            tables.append(
+                (
+                    "knowledge_timing_rules",
+                    "timing rule",
+                    "description,deadline_type,notice_period_value,notice_period_unit,working_days,absolute_date",
+                    ("description", "evidence_text", "relative_to_event_type"),
+                )
+            )
         if not tables and any(word in query for word in ("form", "resource", "where can")):
-            tables.append(("knowledge_resources", "resource", "name,resource_type,url,email,system_name,anchor_text,description", ("name", "description", "anchor_text", "system_name")))
+            tables.append(
+                (
+                    "knowledge_resources",
+                    "resource",
+                    "name,resource_type,url,email,system_name,anchor_text,description",
+                    ("name", "description", "anchor_text", "system_name"),
+                )
+            )
         elif not tables and any(word in query for word in ("contact", "email", "who can i ask")):
-            tables.append(("knowledge_contacts", "contact", "name,organisation,email,contact_type,url,description", ("name", "description", "organisation", "contact_type")))
-        elif any(word in query for word in ("how do", "how can", "process", "steps", "arrange", "organise", "organize", "procedure")) or not tables:
-            tables.extend([
-                ("knowledge_processes", "process", "name,description", ("name", "description", "evidence_text")),
-                ("knowledge_process_steps", "process step", "title,instruction,condition,step_number", ("title", "instruction", "condition", "evidence_text")),
-                ("knowledge_resources", "resource", "name,resource_type,url,email,system_name,anchor_text,description", ("name", "description", "anchor_text", "system_name")),
-                ("knowledge_contacts", "contact", "name,organisation,email,contact_type,url,description", ("name", "description", "organisation", "contact_type")),
-            ])
+            tables.append(
+                (
+                    "knowledge_contacts",
+                    "contact",
+                    "name,organisation,email,contact_type,url,description",
+                    ("name", "description", "organisation", "contact_type"),
+                )
+            )
+        elif (
+            any(
+                word in query
+                for word in ("how do", "how can", "process", "steps", "arrange", "organise", "organize", "procedure")
+            )
+            or not tables
+        ):
+            tables.extend(
+                [
+                    ("knowledge_processes", "process", "name,description", ("name", "description", "evidence_text")),
+                    (
+                        "knowledge_process_steps",
+                        "process step",
+                        "title,instruction,condition,step_number",
+                        ("title", "instruction", "condition", "evidence_text"),
+                    ),
+                    (
+                        "knowledge_resources",
+                        "resource",
+                        "name,resource_type,url,email,system_name,anchor_text,description",
+                        ("name", "description", "anchor_text", "system_name"),
+                    ),
+                    (
+                        "knowledge_contacts",
+                        "contact",
+                        "name,organisation,email,contact_type,url,description",
+                        ("name", "description", "organisation", "contact_type"),
+                    ),
+                ]
+            )
 
         found = []
         fields_common = "id,source_article_id,source_url,source_content_hash,source_updated_at,evidence_text,review_status,confidence,extraction_method,is_stale,visibility"
@@ -56,26 +107,54 @@ class KnowledgeAdapter:
             fields = f"{fields_common},{body_fields}"
             for row in await self._select(table, fields, params):
                 source_id = text(row.get("source_article_id"))
-                body = text(row.get("requirement_text") or row.get("description") or row.get("instruction") or row.get("title") or row.get("name"))
+                body = text(
+                    row.get("requirement_text")
+                    or row.get("description")
+                    or row.get("instruction")
+                    or row.get("title")
+                    or row.get("name")
+                )
                 details = "; ".join(
                     f"{key.replace('_', ' ')}: {row[key]}"
-                    for key in ("applies_to", "mandatory", "deadline_type", "absolute_date", "notice_period_value", "notice_period_unit", "url", "email")
+                    for key in (
+                        "applies_to",
+                        "mandatory",
+                        "deadline_type",
+                        "absolute_date",
+                        "notice_period_value",
+                        "notice_period_unit",
+                        "url",
+                        "email",
+                    )
                     if row.get(key) not in (None, "")
                 )
                 if details:
                     body += f" ({details})"
                 citation = Citation(
-                    id="pending", source_type=f"icu_{kind.replace(' ', '_')}", source_id=text(row.get("id"), source_id),
-                    title=text(row.get("name") or row.get("title"), kind.title()), url=row.get("source_url"),
-                    source_updated_at=row.get("source_updated_at"), content_hash=row.get("source_content_hash"),
-                    review_status=text(row.get("review_status")), authority="approved_structured",
+                    id="pending",
+                    source_type=f"icu_{kind.replace(' ', '_')}",
+                    source_id=text(row.get("id"), source_id),
+                    title=text(row.get("name") or row.get("title"), kind.title()),
+                    url=row.get("source_url"),
+                    source_updated_at=row.get("source_updated_at"),
+                    content_hash=row.get("source_content_hash"),
+                    review_status=text(row.get("review_status")),
+                    authority="approved_structured",
                 )
-                item = evidence(citation, body, lexical_relevance((body, row.get("evidence_text")), request.terms, 0.6), {"kind": kind, "source_article_id": source_id, "authority": "approved_structured"})
+                item = evidence(
+                    citation,
+                    body,
+                    lexical_relevance((body, row.get("evidence_text")), request.terms, 0.6),
+                    {"kind": kind, "source_article_id": source_id, "authority": "approved_structured"},
+                )
                 if item:
                     found.append(item)
 
         if found:
-            return RetrievalResult(source=self.source, evidence=sorted(found, key=lambda item: item.relevance, reverse=True)[: request.max_results])
+            return RetrievalResult(
+                source=self.source,
+                evidence=sorted(found, key=lambda item: item.relevance, reverse=True)[: request.max_results],
+            )
 
         # The deployed corpus currently contains proposed structured rows. Do
         # not present those rows as approved EFDS truth; use the ICU article as
@@ -93,22 +172,37 @@ class KnowledgeAdapter:
             body = text(row.get("markdown"))
             review_status = text(row.get("relevance_review_status"), "not_reviewed")
             citation = Citation(
-                id="pending", source_type="icu_article", source_id=text(row.get("id") or row.get("external_id")),
-                title=text(row.get("title"), "ICU source article"), url=row.get("url"),
-                source_updated_at=row.get("source_updated_at"), content_hash=row.get("content_hash"),
-                review_status=review_status, authority="icu_source",
+                id="pending",
+                source_type="icu_article",
+                source_id=text(row.get("id") or row.get("external_id")),
+                title=text(row.get("title"), "ICU source article"),
+                url=row.get("url"),
+                source_updated_at=row.get("source_updated_at"),
+                content_hash=row.get("content_hash"),
+                review_status=review_status,
+                authority="icu_source",
             )
             item = evidence(
-                citation, body,
-                source_article_relevance(row.get("title"), body, request.terms, 0.4) + (0.05 if row.get("efds_relevance") == "critical" else 0),
-                {"fallback": True, "relevance": row.get("efds_relevance"), "review_limitation": review_status == "proposed"},
+                citation,
+                body,
+                source_article_relevance(row.get("title"), body, request.terms, 0.4)
+                + (0.05 if row.get("efds_relevance") == "critical" else 0),
+                {
+                    "fallback": True,
+                    "relevance": row.get("efds_relevance"),
+                    "review_limitation": review_status == "proposed",
+                },
             )
             if item:
                 found.append(item)
         note = "No approved current structured ICU record was found; results use current ICU source articles."
         if articles and any(text(row.get("relevance_review_status")) == "proposed" for row in articles):
             note += " EFDS relevance review is proposed for at least one source article."
-        return RetrievalResult(source=self.source, evidence=sorted(found, key=lambda item: item.relevance, reverse=True)[: request.max_results], note=note if not found or articles else None)
+        return RetrievalResult(
+            source=self.source,
+            evidence=sorted(found, key=lambda item: item.relevance, reverse=True)[: request.max_results],
+            note=note if not found or articles else None,
+        )
 
 
 class PublicKnowledgeAdapter:
@@ -123,14 +217,28 @@ class PublicKnowledgeAdapter:
         if query:
             params.append(("or", query))
         try:
-            rows = await self.client.select("public_knowledge_resources", "id,name,resource_type,url,system_name,anchor_text,description,source_article_title,source_article_url,published_at", params)
+            rows = await self.client.select(
+                "public_knowledge_resources",
+                "id,name,resource_type,url,system_name,anchor_text,description,source_article_title,source_article_url,published_at",
+                params,
+            )
         except DataAccessError:
             rows = []
         found = []
         for row in rows:
             body = text(row.get("description") or row.get("anchor_text") or row.get("name"))
-            citation = Citation(id="pending", source_type="icu_public_resource", source_id=text(row.get("id")), title=text(row.get("name"), "Public EFDS resource"), url=row.get("url") or row.get("source_article_url"), authority="published_public")
+            citation = Citation(
+                id="pending",
+                source_type="icu_public_resource",
+                source_id=text(row.get("id")),
+                title=text(row.get("name"), "Public EFDS resource"),
+                url=row.get("url") or row.get("source_article_url"),
+                authority="published_public",
+            )
             item = evidence(citation, body, lexical_relevance((row.get("name"), body), request.terms, 0.6))
             if item:
                 found.append(item)
-        return RetrievalResult(source=self.source, evidence=sorted(found, key=lambda item: item.relevance, reverse=True)[: request.max_results])
+        return RetrievalResult(
+            source=self.source,
+            evidence=sorted(found, key=lambda item: item.relevance, reverse=True)[: request.max_results],
+        )
