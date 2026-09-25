@@ -1,0 +1,46 @@
+name: Agent checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Format
+        run: ruff format --check .
+
+      - name: Unit tests
+        run: pytest -q
+
+      # Deterministic and credential-free: it uses fixture retrieval and never
+      # makes a paid model call. It exits non-zero on a failed case, so a
+      # retrieval, citation or isolation regression fails the build.
+      - name: Agent evaluation
+        run: python scripts/run_agent_eval.py
+
+      # Retrieval-only corpus harness. Offline, private-scope cases report
+      # private_scope_simulation_without_bearer by design, so this step asserts
+      # the harness runs rather than asserting a hit rate. Hit rates need a
+      # short-lived bearer token and belong in a manually triggered job.
+      - name: Retrieval harness (offline smoke)
+        run: python scripts/run_eval.py --retrieval-only > /dev/null
