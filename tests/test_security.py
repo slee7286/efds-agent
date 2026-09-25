@@ -14,8 +14,10 @@ def test_requested_scope_can_lower_access():
 
 
 def test_requested_scope_cannot_escalate():
-    with pytest.raises(ScopeError): resolve_scope(AccessRole.MEMBER, AgentScope.ADMIN)
-    with pytest.raises(ScopeError): resolve_scope(AccessRole.MEMBER, AgentScope.MEMBER)
+    with pytest.raises(ScopeError):
+        resolve_scope(AccessRole.MEMBER, AgentScope.ADMIN)
+    with pytest.raises(ScopeError):
+        resolve_scope(AccessRole.MEMBER, AgentScope.MEMBER)
     assert resolve_scope(AccessRole.MEMBER, None).effective_scope is AgentScope.PUBLIC
     assert resolve_scope(AccessRole.EFDS_MEMBER, AgentScope.MEMBER).effective_scope is AgentScope.MEMBER
 
@@ -36,7 +38,9 @@ async def test_verified_member_token_cannot_request_admin_scope():
         return httpx.Response(200, json=[{"auth_user_id": "user-1", "access_role": "efds_member", "active": True}])
 
     client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-    authorization = SupabaseAuthorization(Settings(supabase_url="https://example.supabase.co", supabase_anon_key="anon"), client)
+    authorization = SupabaseAuthorization(
+        Settings(supabase_url="https://example.supabase.co", supabase_anon_key="anon"), client
+    )
     with pytest.raises(ScopeError):
         await authorization.authenticate("short-lived-token", AgentScope.ADMIN)
     await client.aclose()

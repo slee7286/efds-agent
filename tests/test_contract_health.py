@@ -15,7 +15,9 @@ async def test_contract_health_reports_missing_rpc_without_exposing_body():
 
     transport = httpx.MockTransport(handler)
     async with httpx.AsyncClient(transport=transport) as http:
-        client = SupabaseRestClient(Settings(_env_file=None, supabase_url="https://example.supabase.co", supabase_anon_key="anon"), client=http)
+        client = SupabaseRestClient(
+            Settings(_env_file=None, supabase_url="https://example.supabase.co", supabase_anon_key="anon"), client=http
+        )
         result = await retrieval_contract_health(client)
     assert result["status"] == "unavailable"
     assert result["http_status"] == 404
@@ -31,7 +33,9 @@ async def test_contract_health_validates_returned_schema():
         return httpx.Response(200, json=[])
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
-        client = SupabaseRestClient(Settings(_env_file=None, supabase_url="https://example.supabase.co", supabase_anon_key="anon"), client=http)
+        client = SupabaseRestClient(
+            Settings(_env_file=None, supabase_url="https://example.supabase.co", supabase_anon_key="anon"), client=http
+        )
         result = await retrieval_contract_health(client)
     assert result["status"] == "ready"
     assert result["contract_version"] == "1"

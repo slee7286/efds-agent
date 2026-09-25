@@ -4,7 +4,9 @@ from efds_agent.security.scopes import AgentScope
 
 
 def test_process_question_routes_to_knowledge():
-    plan = build_plan("What do I need to do before inviting an external speaker?", development_context(AgentScope.COMMITTEE))
+    plan = build_plan(
+        "What do I need to do before inviting an external speaker?", development_context(AgentScope.COMMITTEE)
+    )
     assert "knowledge" in plan.sources
     assert "requirement_lookup" in plan.intents
     assert "process_lookup" in plan.intents
