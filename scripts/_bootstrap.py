@@ -5,8 +5,7 @@ from pathlib import Path
 
 if sys.version_info < (3, 12):  # noqa: UP036
     raise SystemExit(
-        "efds-agent requires Python 3.12+. "
-        "Create a 3.12+ virtual environment and run the setup commands in README.md."
+        "efds-agent requires Python 3.12+. Create a 3.12+ virtual environment and run the setup commands in README.md."
     )
 
 ROOT = Path(__file__).resolve().parents[1]

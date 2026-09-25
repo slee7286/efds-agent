@@ -31,7 +31,19 @@ async def run(args: argparse.Namespace) -> int:
         raise SystemExit(str(exc)) from exc
     result = await orchestrator.answer(args.question, auth)
     if args.show_plan or args.show_sources:
-        print(json.dumps({"answer": result.answer, "scope": result.scope, "plan": result.plan.model_dump(mode="json"), "citations": [item.model_dump(mode="json") for item in result.citations], "trace": result.trace.model_dump(mode="json")}, indent=2, default=str))
+        print(
+            json.dumps(
+                {
+                    "answer": result.answer,
+                    "scope": result.scope,
+                    "plan": result.plan.model_dump(mode="json"),
+                    "citations": [item.model_dump(mode="json") for item in result.citations],
+                    "trace": result.trace.model_dump(mode="json"),
+                },
+                indent=2,
+                default=str,
+            )
+        )
     else:
         print(result.answer)
     return 0
@@ -47,4 +59,5 @@ def main() -> int:
     return asyncio.run(run(parser.parse_args()))
 
 
-if __name__ == "__main__": raise SystemExit(main())
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -4,6 +4,7 @@ import json
 import os
 import time
 from pathlib import Path
+from typing import Any
 
 import _bootstrap  # noqa: F401
 
@@ -13,20 +14,49 @@ from efds_agent.security.authorization import AuthError, SupabaseAuthorization, 
 from efds_agent.security.scopes import AgentScope, ScopeError
 
 
-async def run(path: Path, retrieval_only: bool, live: bool) -> dict[str, object]:
-    cases = []
-    for item in sorted(path.glob("*.json")):
+def load_cases(path: Path) -> tuple[list[dict[str, Any]], list[str]]:
+    """Load cases from a file or a directory.
+
+    `run_live_agent_eval.py` keeps its cases in this same directory with a
+    different schema, because it drives an HTTP endpoint rather than the
+    orchestrator. Skipping those with a note keeps the default invocation from
+    crashing on a case it was never able to run.
+    """
+    files = sorted(path.glob("*.json")) if path.is_dir() else [path]
+    cases: list[dict[str, object]] = []
+    skipped: list[str] = []
+    for item in files:
         payload = json.loads(item.read_text(encoding="utf-8"))
-        cases.extend(payload if isinstance(payload, list) else [payload])
+        entries = payload if isinstance(payload, list) else [payload]
+        usable = [entry for entry in entries if isinstance(entry, dict) and "question" in entry]
+        if not usable:
+            skipped.append(item.name)
+            continue
+        cases.extend(usable)
+    return cases, skipped
+
+
+async def run(path: Path, retrieval_only: bool, live: bool) -> dict[str, object]:
+    cases, skipped_case_files = load_cases(path)
     settings = get_settings()
     orchestrator = AgentOrchestrator(settings)
     token = os.getenv("EFDS_AGENT_BEARER_TOKEN")
     authorization = SupabaseAuthorization(settings)
     metrics: dict[str, object] = {
-        "cases": len(cases), "authorized_cases": 0, "auth_denied": 0,
-        "retrieval_hit": 0, "expected_source_hit": 0, "expected_source_type_hit": 0,
-        "expected_source_id_hit": 0, "candidate_expected_source_id_hit": 0, "citation_presence": 0,
-        "citation_validation_cases": 0, "citation_validity": 0, "forbidden_source_leakage": 0, "answer_support": 0,
+        "cases": len(cases),
+        "skipped_case_files": skipped_case_files,
+        "authorized_cases": 0,
+        "auth_denied": 0,
+        "retrieval_hit": 0,
+        "expected_source_hit": 0,
+        "expected_source_type_hit": 0,
+        "expected_source_id_hit": 0,
+        "candidate_expected_source_id_hit": 0,
+        "citation_presence": 0,
+        "citation_validation_cases": 0,
+        "citation_validity": 0,
+        "forbidden_source_leakage": 0,
+        "answer_support": 0,
         "failure_categories": {},
     }
 
@@ -104,7 +134,25 @@ async def run(path: Path, retrieval_only: bool, live: bool) -> dict[str, object]
             if citations:
                 metrics["citation_validation_cases"] += 1
                 metrics["citation_validity"] += 1 if all(item.id for item in citations) else 0
-        print(json.dumps({"id": case["id"], "scope": auth.scope.effective_scope.value, "plan": plan.model_dump(mode="json"), "sources": [item.source for item in results if item.queried], "result_counts": result_counts, "candidate_source_ids": candidate_source_ids, "citation_ids": [item.source_id for item in citations], "stable_id_hit": stable_id_hit, "candidate_expected_id_hit": candidate_expected_id_hit, "failure_category": failure_category, "latency_ms": round((time.perf_counter() - started) * 1000, 2), "answer": answer}, default=str))
+        print(
+            json.dumps(
+                {
+                    "id": case["id"],
+                    "scope": auth.scope.effective_scope.value,
+                    "plan": plan.model_dump(mode="json"),
+                    "sources": [item.source for item in results if item.queried],
+                    "result_counts": result_counts,
+                    "candidate_source_ids": candidate_source_ids,
+                    "citation_ids": [item.source_id for item in citations],
+                    "stable_id_hit": stable_id_hit,
+                    "candidate_expected_id_hit": candidate_expected_id_hit,
+                    "failure_category": failure_category,
+                    "latency_ms": round((time.perf_counter() - started) * 1000, 2),
+                    "answer": answer,
+                },
+                default=str,
+            )
+        )
     return metrics
 
 

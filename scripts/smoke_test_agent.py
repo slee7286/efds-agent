@@ -45,8 +45,12 @@ async def run(args: argparse.Namespace) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Opt-in live EFDS agent smoke test")
     parser.add_argument("--query", default="What do we need to do before inviting an external speaker?")
-    parser.add_argument("--scope", choices=[item.value for item in AgentScope if item is not AgentScope.PUBLIC], default="committee")
-    parser.add_argument("--source-mode", choices=[item.value for item in SourceMode], default=SourceMode.PRETERM_KNOWLEDGE.value)
+    parser.add_argument(
+        "--scope", choices=[item.value for item in AgentScope if item is not AgentScope.PUBLIC], default="committee"
+    )
+    parser.add_argument(
+        "--source-mode", choices=[item.value for item in SourceMode], default=SourceMode.PRETERM_KNOWLEDGE.value
+    )
     return asyncio.run(run(parser.parse_args()))
 
 

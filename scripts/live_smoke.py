@@ -40,8 +40,17 @@ async def run(args: argparse.Namespace) -> int:
     try:
         plan, context, results = await orchestrator.retrieve(args.query, auth, source_mode=SourceMode(args.source_mode))
     except RetrievalDependencyError as exc:
-        print(json.dumps({"status": "integration_failure", "category": "retrieval_dependency",
-                          "message": str(exc), "query": args.query}, indent=2))
+        print(
+            json.dumps(
+                {
+                    "status": "integration_failure",
+                    "category": "retrieval_dependency",
+                    "message": str(exc),
+                    "query": args.query,
+                },
+                indent=2,
+            )
+        )
         return 2
     payload: dict[str, object] = {
         "authenticated_role": auth.access_role.value if auth.access_role else None,
@@ -82,7 +91,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="No-LLM live EFDS authorization/retrieval smoke test")
     parser.add_argument("--query", default="What do I need to do before inviting an external speaker?")
     parser.add_argument("--scope", choices=[item.value for item in AgentScope], default="public")
-    parser.add_argument("--source-mode", choices=[item.value for item in SourceMode], default=SourceMode.PRETERM_KNOWLEDGE.value)
+    parser.add_argument(
+        "--source-mode", choices=[item.value for item in SourceMode], default=SourceMode.PRETERM_KNOWLEDGE.value
+    )
     parser.add_argument("--show-plan", action="store_true")
     parser.add_argument("--show-results", action="store_true")
     parser.add_argument("--show-citations", action="store_true")

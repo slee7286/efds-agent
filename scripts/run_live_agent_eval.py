@@ -58,20 +58,30 @@ async def run(args: argparse.Namespace) -> int:
     if os.getenv("EFDS_AGENT_SHARED_SECRET"):
         headers["X-EFDS-Agent-Secret"] = os.environ["EFDS_AGENT_SHARED_SECRET"]
     output: dict[str, Any] = {
-        "status": "completed", "started_at": datetime.now(UTC).isoformat(),
-        "with_model": args.with_model, "service_url": args.agent_url,
+        "status": "completed",
+        "started_at": datetime.now(UTC).isoformat(),
+        "with_model": args.with_model,
+        "service_url": args.agent_url,
         "cases": [],
     }
     async with httpx.AsyncClient(timeout=args.timeout) as client:
         for case in cases:
             query = str(case["query"])
-            payload = {"query": query, "scope": case.get("scope", args.scope),
-                       "source_mode": case.get("source_mode", "preterm_knowledge"),
-                       "conversation": case.get("conversation", [])}
+            payload = {
+                "query": query,
+                "scope": case.get("scope", args.scope),
+                "source_mode": case.get("source_mode", "preterm_knowledge"),
+                "conversation": case.get("conversation", []),
+            }
             endpoint = "/v1/query" if args.with_model else "/v1/retrieval"
             started = time.perf_counter()
-            item: dict[str, Any] = {"id": case.get("id", _hash(query)), "query_hash": _hash(query),
-                                    "endpoint": endpoint, "scope": payload["scope"], "source_mode": payload["source_mode"]}
+            item: dict[str, Any] = {
+                "id": case.get("id", _hash(query)),
+                "query_hash": _hash(query),
+                "endpoint": endpoint,
+                "scope": payload["scope"],
+                "source_mode": payload["source_mode"],
+            }
             try:
                 response = await client.post(args.agent_url.rstrip("/") + endpoint, headers=headers, json=payload)
                 item["http_status"] = response.status_code
@@ -79,15 +89,31 @@ async def run(args: argparse.Namespace) -> int:
                 if response.status_code >= 400:
                     body = {"integration_error": response.text[:240]}
                 if args.with_model:
-                    item.update({"answer": body.get("answer", ""), "citations": body.get("citations", []),
-                                 "insufficient_evidence": body.get("insufficient_evidence", False),
-                                 "invalid_citation_ids": body.get("trace", {}).get("invalid_citations_removed", []),
-                                 "evidence": [{"retrieval_unit_id": c.get("retrieval_unit_id"), "title": c.get("title"),
-                                               "source_type": c.get("source_type"), "preview": c.get("excerpt", "")[:240]}
-                                              for c in body.get("citations", [])]})
+                    item.update(
+                        {
+                            "answer": body.get("answer", ""),
+                            "citations": body.get("citations", []),
+                            "insufficient_evidence": body.get("insufficient_evidence", False),
+                            "invalid_citation_ids": body.get("trace", {}).get("invalid_citations_removed", []),
+                            "evidence": [
+                                {
+                                    "retrieval_unit_id": c.get("retrieval_unit_id"),
+                                    "title": c.get("title"),
+                                    "source_type": c.get("source_type"),
+                                    "preview": c.get("excerpt", "")[:240],
+                                }
+                                for c in body.get("citations", [])
+                            ],
+                        }
+                    )
                 else:
-                    item.update({"retrieval_quality": body.get("retrieval_quality"), "retrieval_metadata": body.get("retrieval_metadata", {}),
-                                 "evidence": body.get("evidence", [])})
+                    item.update(
+                        {
+                            "retrieval_quality": body.get("retrieval_quality"),
+                            "retrieval_metadata": body.get("retrieval_metadata", {}),
+                            "evidence": body.get("evidence", []),
+                        }
+                    )
             except (httpx.HTTPError, ValueError) as exc:
                 item["integration_error"] = type(exc).__name__
             item["latency_ms"] = round((time.perf_counter() - started) * 1000, 2)

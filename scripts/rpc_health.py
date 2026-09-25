@@ -33,7 +33,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Check the fixed EFDS retrieval RPC without applying migrations")
     parser.add_argument("--no-probe", action="store_true", help="only inspect the PostgREST schema document")
     parser.add_argument("--require-ready", action="store_true", help="exit 2 unless the RPC probe is ready")
-    parser.add_argument("--require-schema", action="store_true", help="exit 3 unless at least one authorized result validates the row schema")
+    parser.add_argument(
+        "--require-schema",
+        action="store_true",
+        help="exit 3 unless at least one authorized result validates the row schema",
+    )
     return asyncio.run(run(parser.parse_args()))
 
 
